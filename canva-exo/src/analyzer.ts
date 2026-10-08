@@ -5,9 +5,8 @@ const fileInput = document.querySelector('input')!
 
 let audioContext: AudioContext
 let analyser: AnalyserNode
-let frequences: Uint8Array<ArrayBuffer>  
-const rayon = 100;     
-const steps = 50;      
+let frequences: Uint8Array<ArrayBuffer> 
+const steps = 60;
 
 type Particule = {
   x: number
@@ -22,33 +21,37 @@ addEventListener('resize', resize)
 resize()
 tick()
 
-function creerCercle() {
-context.filter = "blur(4px)"
-context.beginPath();
-for (let i = 0; i <= steps; i++) {
-    const angle = (i / steps) * Math.PI * 2;
-    
-    let x = (canvas.width / 2) + (frequences[i+43]) * Math.cos(angle);
-    let y = (canvas.height / 2) + (frequences[i+43]) * Math.sin(angle);
-
-    if(i === steps) {
-      y = (canvas.height / 2) + (frequences[i+43-steps]) * Math.sin(angle);
-    }
-
-    console.log((frequences[43-steps]) + ", " + frequences[i+43])
-    
-    if (i === 0) {
-        context.moveTo(x, y);
-    } else {
-        context.lineTo(x, y);
-    }
-}
-context.fillStyle = "white";
-context.fill();
-context.strokeStyle = "white";
-context.lineWidth = 4;
-context.stroke();
-context.closePath()
+function createCircle() {
+  context.beginPath();
+  context.filter = "blur(4px)"
+  for (let i = 0; i <= steps; i++) {
+      const angle = (i / steps) * Math.PI;
+      
+      let x = (canvas.width / 2) + (frequences[i+43]) * Math.cos(angle);
+      let y = (canvas.height / 2) + (frequences[i+43]) * Math.sin(angle);
+      
+      if (i === 0) {
+          context.moveTo(x, y);
+      } else {
+          context.lineTo(x, y);
+      }
+  }
+  for (let i = steps; i > 0; i--) {
+      const angle = (i / steps) * Math.PI;
+      
+      let x = (canvas.width / 2) + (frequences[i+43]) * Math.cos(angle);
+      let y = (canvas.height / 2) + (frequences[i+43]) * Math.sin(angle);
+  
+      context.lineTo(x, y);
+  }
+  
+  context.fillStyle = "white";
+  context.fill();
+  context.strokeStyle = "white";
+  context.lineWidth = 4;
+  context.stroke();
+  context.filter = "none"
+  context.closePath()
 }
 
 fileInput.addEventListener('change', () => {
@@ -93,7 +96,7 @@ function volumeAigus() {
   return total / 131
 }
 
-function creerParticules(nombre: number) {
+function createParticles(nombre: number) {
   for (let i = 0; i < nombre; i++) {
     const angle = Math.random() * Math.PI * 2
     const vitesse = 3 + Math.random() * 5
@@ -112,8 +115,7 @@ function render() {
   context.fillRect(0, 0, canvas.width, canvas.height)
 
   if (audioContext && !audioElement.paused && volumeBasses() > 203.8) {
-    creerParticules(5)
-    creerCercle()
+    createParticles(5)
   }
 
   context.fillStyle = '#fff'
@@ -124,7 +126,7 @@ function render() {
   }
 
   if(audioContext){
-    creerCercle()
+    createCircle()
   }
 
 //   if(audioContext){
