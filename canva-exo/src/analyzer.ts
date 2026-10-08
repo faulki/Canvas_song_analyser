@@ -1,3 +1,5 @@
+import { createGUI } from './gui'
+
 const canvas = document.querySelector('canvas')!
 const context = canvas.getContext('2d')!
 const audioElement = document.querySelector('audio')!
@@ -5,8 +7,29 @@ const fileInput = document.querySelector('input')!
 
 let audioContext: AudioContext
 let analyser: AnalyserNode
-let frequences: Uint8Array<ArrayBuffer> 
-const steps = 60;
+let frequences: Uint8Array<ArrayBuffer>
+const offsetFrequences = 43
+const seuilBasses = 190
+
+export type Parameters = {
+  steps: number
+  flou: number
+  glow: number
+  couleurCercle: string
+  opaciteFond: number
+  modeFusion: GlobalCompositeOperation
+  couleurParticules: string
+}
+
+const parameters: Parameters = {
+  steps: 40,
+  flou: 4,
+  glow: 30,
+  couleurCercle: '#ffffff',
+  opaciteFond: 100,
+  modeFusion: 'source-over',
+  couleurParticules: '#ffffff',
+}
 
 type Particule = {
   x: number
@@ -17,42 +40,11 @@ type Particule = {
 }
 let particules: Particule[] = []
 
+createGUI(parameters)
+
 addEventListener('resize', resize)
 resize()
 tick()
-
-function createCircle() {
-  context.beginPath();
-  context.filter = "blur(4px)"
-  for (let i = 0; i <= steps; i++) {
-      const angle = (i / steps) * Math.PI;
-      
-      let x = (canvas.width / 2) + (frequences[i+43]) * Math.cos(angle);
-      let y = (canvas.height / 2) + (frequences[i+43]) * Math.sin(angle);
-      
-      if (i === 0) {
-          context.moveTo(x, y);
-      } else {
-          context.lineTo(x, y);
-      }
-  }
-  for (let i = steps; i > 0; i--) {
-      const angle = (i / steps) * Math.PI;
-      
-      let x = (canvas.width / 2) + (frequences[i+43]) * Math.cos(angle);
-      let y = (canvas.height / 2) + (frequences[i+43]) * Math.sin(angle);
-  
-      context.lineTo(x, y);
-  }
-  
-  context.fillStyle = "white";
-  context.fill();
-  context.strokeStyle = "white";
-  context.lineWidth = 4;
-  context.stroke();
-  context.filter = "none"
-  context.closePath()
-}
 
 fileInput.addEventListener('change', () => {
   const file = fileInput.files?.[0]
@@ -79,7 +71,6 @@ function createContext() {
 }
 
 function volumeBasses() {
-  analyser.getByteFrequencyData(frequences)
   let total = 0
   for (let i = 2; i < 6; i++) {
     total += frequences[i]
@@ -88,12 +79,55 @@ function volumeBasses() {
 }
 
 function volumeAigus() {
-  analyser.getByteFrequencyData(frequences)
   let total = 0
   for (let i = 43; i < 173; i++) {
     total += frequences[i]
   }
   return total / 131
+}
+
+function createCircle() {
+  const steps = parameters.steps
+  const centreX = canvas.width / 2
+  const centreY = canvas.height / 2
+
+  const rayons: number[] = []
+  for (let i = 0; i <= steps; i++) {
+    rayons.push(frequences[offsetFrequences + i])
+  }
+
+  context.save()
+  context.shadowColor = parameters.couleurCercle
+  context.shadowBlur = parameters.glow
+  context.globalCompositeOperation = parameters.modeFusion
+  context.filter = `blur(${parameters.flou}px)`
+  context.beginPath()
+
+  for (let i = 0; i <= steps; i++) {
+    const angle = (i / steps) * Math.PI
+    const x = centreX + rayons[i] * Math.cos(angle)
+    const y = centreY + rayons[i] * Math.sin(angle)
+    if (i === 0) {
+      context.moveTo(x, y)
+    } else {
+      context.lineTo(x, y)
+    }
+  }
+
+  for (let i = steps - 1; i > 0; i--) {
+    const angle = (i / steps) * Math.PI
+    const x = centreX + rayons[i] * Math.cos(angle)
+    const y = centreY - rayons[i] * Math.sin(angle)
+    context.lineTo(x, y)
+  }
+
+  context.closePath()
+  context.fillStyle = parameters.couleurCercle
+  context.fill()
+  context.strokeStyle = parameters.couleurCercle
+  context.lineWidth = 4
+  context.stroke()
+  context.restore()
 }
 
 function createParticles(nombre: number) {
@@ -110,42 +144,36 @@ function createParticles(nombre: number) {
   }
 }
 
-function render() {
-  context.fillStyle = 'rgb(0, 0, 0)'
-  context.fillRect(0, 0, canvas.width, canvas.height)
-
-  if (audioContext && !audioElement.paused && volumeBasses() > 203.8) {
-    createParticles(5)
-  }
-
-  context.fillStyle = '#fff'
+function drawParticles() {
+  context.fillStyle = parameters.couleurParticules
   for (const p of particules) {
     p.x += p.vx
     p.y += p.vy
     context.fillRect(p.x - p.taille / 2, p.y - p.taille / 2, p.taille, p.taille)
   }
 
-  if(audioContext){
-    createCircle()
-  }
-
-//   if(audioContext){
-//     context.beginPath();
-//     context.arc(canvas.width / 2, canvas.height / 2, volumeAigus(), 0, 2 * Math.PI);
-//     context.fillStyle = "white";
-//     context.fill();
-//     context.lineWidth = 4;
-//     context.strokeStyle = "white";
-//     context.stroke();
-// }
-  
-
   particules = particules.filter(
     (p) => p.x > 0 && p.x < canvas.width && p.y > 0 && p.y < canvas.height,
   )
 }
 
-function resize() { 
+function render() {
+  context.fillStyle = `rgb(0, 0, 0, ${parameters.opaciteFond}%)`
+  context.fillRect(0, 0, canvas.width, canvas.height)
+
+  if (audioContext) {
+    analyser.getByteFrequencyData(frequences)
+    createCircle()
+
+    if (!audioElement.paused && volumeBasses() > seuilBasses) {
+      createParticles(5)
+    }
+  }
+
+  drawParticles()
+}
+
+function resize() {
   canvas.width = window.innerWidth
   canvas.height = window.innerHeight
 }
