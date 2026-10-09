@@ -4,33 +4,65 @@ import type { Parameters } from "./analyzer";
 export function createGUI(parameters: Parameters) {
     const pane = new Pane()
 
-    pane.addBinding(parameters, 'flou', {
+    const f1 = pane.addFolder({
+        title: 'Particles',
+    });
+
+    const f2 = pane.addFolder({
+        title: 'Circle/Bubble',
+    });
+
+    f1.addBinding(parameters, 'numberParticles', {
+        min: 1,
+        max: 10,
+        step: 1
+    })
+
+    f1.addBinding(parameters, 'particlesSize', {
+        min: 1,
+        max: 50,
+        step: 1
+    })
+
+    f1.addBinding(parameters, 'glowParticles', {
         min: 0,
         max: 30,
         step: 0.1
     })
 
-    pane.addBinding(parameters, 'glow', {
+    f1.addBinding(parameters, 'shadowSize', {
+        min: 1,
+        max: 50,
+        step: 1
+    })
+
+    f2.addBinding(parameters, 'blur', {
+        min: 0,
+        max: 30,
+        step: 0.1
+    })
+
+    f2.addBinding(parameters, 'glowCircle', {
         min: 0,
         max: 100,
         step: 1
     })
 
-    pane.addBinding(parameters, 'couleurCercle')
+    f2.addBinding(parameters, 'circleColor')
 
-    pane.addBinding(parameters, 'steps', {
+    f2.addBinding(parameters, 'steps', {
         min: 3,
         max: 130,
         step: 1
     })
 
-    pane.addBinding(parameters, 'opaciteFond', {
+    pane.addBinding(parameters, 'bgOpacity', {
         min: 0,
         max: 100,
         step: 1
     })
 
-    pane.addBinding(parameters, 'modeFusion', {
+    pane.addBinding(parameters, 'fusionMode', {
         options: {
             normal: 'source-over',
             lighter: 'lighter',
@@ -52,6 +84,4 @@ export function createGUI(parameters: Parameters) {
             xor: 'xor'
         }
     })
-
-    pane.addBinding(parameters, 'couleurParticules')
 }

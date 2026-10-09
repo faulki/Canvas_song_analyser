@@ -13,22 +13,28 @@ const seuilBasses = 190
 
 export type Parameters = {
   steps: number
-  flou: number
-  glow: number
-  couleurCercle: string
-  opaciteFond: number
-  modeFusion: GlobalCompositeOperation
-  couleurParticules: string
+  blur: number
+  glowCircle: number
+  glowParticles: number
+  particlesSize: number
+  shadowSize: number
+  numberParticles: number
+  circleColor: string
+  bgOpacity: number
+  fusionMode: GlobalCompositeOperation
 }
 
 const parameters: Parameters = {
   steps: 40,
-  flou: 4,
-  glow: 30,
-  couleurCercle: '#ffffff',
-  opaciteFond: 100,
-  modeFusion: 'source-over',
-  couleurParticules: '#ffffff',
+  blur: 4,
+  glowCircle: 30,
+  glowParticles: 10,
+  particlesSize: 4,
+  shadowSize: 10,
+  numberParticles: 3,
+  circleColor: '#ffffff',
+  bgOpacity: 100,
+  fusionMode: 'source-over',
 }
 
 type Particule = {
@@ -36,9 +42,9 @@ type Particule = {
   y: number
   vx: number
   vy: number
-  taille: number
+  size: number
 }
-let particules: Particule[] = []
+let particles: Particule[] = []
 
 createGUI(parameters)
 
@@ -97,10 +103,10 @@ function createCircle() {
   }
 
   context.save()
-  context.shadowColor = parameters.couleurCercle
-  context.shadowBlur = parameters.glow
-  context.globalCompositeOperation = parameters.modeFusion
-  context.filter = `blur(${parameters.flou}px)`
+  context.shadowColor = parameters.circleColor
+  context.shadowBlur = parameters.glowCircle
+  context.globalCompositeOperation = parameters.fusionMode
+  context.filter = `blur(${parameters.blur}px)`
   context.beginPath()
 
   for (let i = 0; i <= steps; i++) {
@@ -122,9 +128,9 @@ function createCircle() {
   }
 
   context.closePath()
-  context.fillStyle = parameters.couleurCercle
+  context.fillStyle = parameters.circleColor
   context.fill()
-  context.strokeStyle = parameters.couleurCercle
+  context.strokeStyle = parameters.circleColor
   context.lineWidth = 4
   context.stroke()
   context.restore()
@@ -134,31 +140,47 @@ function createParticles(nombre: number) {
   for (let i = 0; i < nombre; i++) {
     const angle = Math.random() * Math.PI * 2
     const vitesse = 3 + Math.random() * 5
-    particules.push({
+    particles.push({
       x: canvas.width / 2,
       y: canvas.height / 2,
       vx: Math.cos(angle) * vitesse,
       vy: Math.sin(angle) * vitesse,
-      taille: 4 + Math.random() * 8,
+      size: 4 + Math.random() * parameters.particlesSize,
     })
   }
 }
 
 function drawParticles() {
-  context.fillStyle = parameters.couleurParticules
-  for (const p of particules) {
+  context.fillStyle = parameters.circleColor
+  context.shadowColor = parameters.circleColor
+  context.shadowBlur = parameters.glowParticles
+  for (const p of particles) {
     p.x += p.vx
     p.y += p.vy
-    context.fillRect(p.x - p.taille / 2, p.y - p.taille / 2, p.taille, p.taille)
+    context.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size)
   }
 
-  particules = particules.filter(
+// function drawParticles() {
+//   context.fillStyle = parameters.circleColor
+//   context.shadowColor = parameters.circleColor
+//   context.shadowBlur = parameters.glowParticles
+//   for (const p of particles) {
+//     context.beginPath()
+//     p.x += p.vx
+//     p.y += p.vy
+//     context.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+//     context.closePath()
+//     context.fillStyle = parameters.circleColor
+//     context.fill()
+//   }
+
+  particles = particles.filter(
     (p) => p.x > 0 && p.x < canvas.width && p.y > 0 && p.y < canvas.height,
   )
 }
 
 function render() {
-  context.fillStyle = `rgb(0, 0, 0, ${parameters.opaciteFond}%)`
+  context.fillStyle = `rgb(0, 0, 0, ${parameters.bgOpacity}%)`
   context.fillRect(0, 0, canvas.width, canvas.height)
 
   if (audioContext) {
@@ -166,11 +188,11 @@ function render() {
     createCircle()
 
     if (!audioElement.paused && volumeBasses() > seuilBasses) {
-      createParticles(5)
+      createParticles(parameters.numberParticles)
     }
-  }
 
-  drawParticles()
+    drawParticles()
+  }
 }
 
 function resize() {
