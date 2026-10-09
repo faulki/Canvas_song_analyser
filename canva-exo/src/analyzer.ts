@@ -84,13 +84,13 @@ function volumeBasses() {
   return total / 5
 }
 
-function volumeAigus() {
-  let total = 0
-  for (let i = 43; i < 173; i++) {
-    total += frequences[i]
-  }
-  return total / 131
-}
+// function volumeAigus() {
+//   let total = 0
+//   for (let i = 43; i < 173; i++) {
+//     total += frequences[i]
+//   }
+//   return total / 131
+// }
 
 function createCircle() {
   const steps = parameters.steps
